@@ -35,7 +35,9 @@ public static class AvatarPatches
     public static void ComputeBaseStats(Avatar __instance)
     {
         if (QuicksilverMod.TargetTimeScale <= 0f || !QuicksilverMod.IsMainRig(__instance) || !QuicksilverMod.IsEnabled)
+        {
             return;
+        }
 
         // Stats
         float mlp = 1f / QuicksilverMod.TargetTimeScale;
@@ -43,8 +45,7 @@ public static class AvatarPatches
 
         __instance._strengthUpper *= pow;
         __instance._strengthLower *= pow * pow;
-        __instance._strengthGrip *= mlp;
         __instance._speed *= mlp;
-        __instance._agility *= pow;
+        __instance._agility *= pow * pow;
     }
 }

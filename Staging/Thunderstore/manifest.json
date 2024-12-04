@@ -1,0 +1,9 @@
+{
+    "name": "Quicksilver",
+    "version_number": "1.7.0",
+    "website_url": "",
+    "description": "Move at normal speed while in slow-motion.",
+    "dependencies": [
+         "gnonme-BoneLib-3.0.0"
+    ]
+}

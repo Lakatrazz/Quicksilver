@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 
 using Il2CppSLZ.Marrow;
-
+using MelonLoader;
 using UnityEngine;
 
 namespace Quicksilver.Patching;
@@ -10,19 +10,42 @@ namespace Quicksilver.Patching;
 public static class AnimationRigPatches
 {
     [HarmonyPrefix]
-    [HarmonyPatch(nameof(AnimationRig.UpdateHeptaBody2))]
-    public static void UpdateHeptaBody2(AnimationRig __instance, Rig inRig, ref float deltaTime, ref Vector2 velocity, ref Vector2 accel)
+    [HarmonyPatch(nameof(AnimationRig.OnEarlyUpdate))]
+    public static void OnEarlyUpdatePrefix(AnimationRig __instance)
     {
         if (!QuicksilverMod.IsEnabled)
         {
             return;
         }
 
-        if (QuicksilverMod.TargetTimeScale > 0f && QuicksilverMod.IsMainRig(__instance))
+        if (QuicksilverMod.IsMainRig(__instance))
         {
-            deltaTime /= QuicksilverMod.TargetTimeScale;
-            velocity *= QuicksilverMod.TargetTimeScale;
-            accel *= QuicksilverMod.TargetTimeScale;
+            TimePatches.ReturnScaled = true;
         }
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(nameof(AnimationRig.OnEarlyUpdate))]
+    public static void OnEarlyUpdatePostfix(AnimationRig __instance)
+    {
+        TimePatches.ReturnScaled = false;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(nameof(AnimationRig.BodyVelocity))]
+    public static void BodyVelocity(AnimationRig __instance, Rig inRig, ref Vector2 vel, ref Vector2 accel, float deltaTime)
+    {
+        if (!QuicksilverMod.IsEnabled)
+        {
+            return;
+        }
+
+        if (!QuicksilverMod.IsMainRig(__instance))
+        {
+            return;
+        }
+
+        vel *= QuicksilverMod.TargetTimeScale;
+        accel *= QuicksilverMod.TargetTimeScale;
     }
 }

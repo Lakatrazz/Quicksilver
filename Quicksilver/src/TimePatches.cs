@@ -17,16 +17,20 @@ public static class TimePatches
     [HarmonyPatch(nameof(Time.deltaTime), MethodType.Getter)]
     public static void GetDeltaTime(ref float __result)
     {
-        if (!QuicksilverMod.IsEnabled || !(Time.timeScale > 0f))
+        if (!QuicksilverMod.IsEnabled)
+        {
             return;
+        }
+
+        var timeScale = GetRealTimeScale();
 
         if (ReturnScaled)
         {
-            __result /= Time.timeScale;
+            __result /= timeScale;
         }
         else if (ReturnInversed)
         {
-            __result *= Time.timeScale;
+            __result *= timeScale;
         }
     }
 
@@ -34,16 +38,20 @@ public static class TimePatches
     [HarmonyPatch(nameof(Time.fixedDeltaTime), MethodType.Getter)]
     public static void GetFixedDeltaTime(ref float __result)
     {
-        if (!QuicksilverMod.IsEnabled || !(Time.timeScale > 0f))
+        if (!QuicksilverMod.IsEnabled)
+        {
             return;
+        }
+
+        var timeScale = GetRealTimeScale();
 
         if (ReturnScaled)
         {
-            __result /= Time.timeScale;
+            __result /= timeScale;
         }
         else if (ReturnInversed)
         {
-            __result *= Time.timeScale;
+            __result *= timeScale;
         }
     }
 
@@ -60,5 +68,18 @@ public static class TimePatches
         {
             __result = 1f;
         }
+    }
+
+    private static float GetRealTimeScale()
+    {
+        var forced = ForceDefaultTimescale;
+
+        ForceDefaultTimescale = false;
+
+        var timeScale = Time.timeScale;
+
+        ForceDefaultTimescale = forced;
+
+        return timeScale;
     }
 }

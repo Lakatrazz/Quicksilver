@@ -119,10 +119,11 @@ public class QuicksilverMod : MelonMod
 
     public void ResetPlayer()
     {
-        if (rigManager.physicsRig.torso.spineInternalMult > 0f)
-        {
-            rigManager.physicsRig.torso.spineInternalMult = 1f;
-        }
+        var physicsRig = rigManager.physicsRig;
+
+        physicsRig._pelvisForceInternalMult = 1f;
+        physicsRig.leftHand.physHand.armInternalMult = 1f;
+        physicsRig.rightHand.physHand.armInternalMult = 1f;
 
         rigManager.SwapAvatarCrate(rigManager.AvatarCrate.Barcode);
 
@@ -135,76 +136,92 @@ public class QuicksilverMod : MelonMod
     {
         float timeScale = Time.timeScale;
 
-        // Update avatar
-        if (timeScale > 0f && HasRigManager() && rigManager.physicsRig.torso.spineInternalMult > 0f)
+        if (timeScale <= 0f)
         {
-            // Enabled event
-            if (IsEnabled)
+            return;
+        }
+
+        if (!HasRigManager())
+        {
+            return;
+        }
+
+        if (!rigManager.physicsRig.ballLocoEnabled)
+        {
+            return;
+        }
+
+        // Enabled event
+        if (IsEnabled)
+        {
+            if (Mathf.Round(timeScale * 1000f) != Mathf.Round(lastCheckedTimeScale * 1000f))
             {
-                if (Mathf.Round(timeScale * 1000f) != Mathf.Round(lastCheckedTimeScale * 1000f))
-                {
-                    OnUpdateVelocities(timeScale, lastCheckedTimeScale);
+                OnUpdateVelocities(timeScale, lastCheckedTimeScale);
 
-                    timeOfLastAvatarUpdate = Time.realtimeSinceStartup;
-                    checkForUpdate = true;
-                    lastCheckedTimeScale = timeScale;
-                }
-
-                if (!_previousIsEnabled || (checkForUpdate && (Time.realtimeSinceStartup - timeOfLastAvatarUpdate) > 0.015f))
-                {
-                    checkForUpdate = false;
-
-                    rigManager.SwapAvatarCrate(rigManager.AvatarCrate.Barcode);
-
-                    OnUpdateRigidbodies(timeScale);
-
-                    lastTimeScale = timeScale;
-
-                    TargetTimeScale = timeScale;
-                }
-
-                // Apply extra gravity
-                float playerMass = rigManager.avatar.massTotal * 0.35f;
-
-                float gravMult = 1f / Mathf.Pow(timeScale, 0.2f);
-                var totalGravity = Physics.gravity * playerMass;
-                var grav = (totalGravity * gravMult) - totalGravity;
-
-                var feetRb = rigManager.physicsRig._feetRb;
-                var kneeRb = rigManager.physicsRig._kneeRb;
-
-                Vector3 totalForce = grav;
-                float totalMass = 0f;
-
-                if (feetRb.useGravity)
-                {
-                    feetRb.AddForce(grav, ForceMode.Acceleration);
-                    totalMass += feetRb.mass;
-                }
-
-                if (kneeRb.useGravity)
-                {
-                    kneeRb.AddForce(grav, ForceMode.Acceleration);
-                    totalMass += kneeRb.mass;
-                }
-
-                var col = rigManager.physicsRig.physG._groundedCollider;
-                if (col && col.attachedRigidbody)
-                {
-                    col.attachedRigidbody.AddForceAtPosition(-totalForce * Mathf.Min(col.attachedRigidbody.mass, totalMass), feetRb.worldCenterOfMass, ForceMode.Force);
-                }
-
-                if (rigManager.physicsRig.torso.spineInternalMult > 0f)
-                {
-                    rigManager.physicsRig.torso.spineInternalMult = 1f / Mathf.Pow(timeScale, 3f);
-                }
-            }
-            else if (_previousIsEnabled)
-            {
-                ResetPlayer();
+                timeOfLastAvatarUpdate = Time.realtimeSinceStartup;
+                checkForUpdate = true;
+                lastCheckedTimeScale = timeScale;
             }
 
-            _previousIsEnabled = IsEnabled;
+            if (!_previousIsEnabled || (checkForUpdate && (Time.realtimeSinceStartup - timeOfLastAvatarUpdate) > 0.015f))
+            {
+                checkForUpdate = false;
+
+                rigManager.SwapAvatarCrate(rigManager.AvatarCrate.Barcode);
+
+                OnUpdateRigidbodies(timeScale);
+
+                lastTimeScale = timeScale;
+
+                TargetTimeScale = timeScale;
+            }
+
+            // Apply extra gravity
+            ApplyGravity(timeScale);
+
+            var physicsRig = rigManager.physicsRig;
+            physicsRig._pelvisForceInternalMult = 1f / Mathf.Pow(timeScale, 3f);
+            physicsRig.leftHand.physHand.armInternalMult = 1f / timeScale;
+            physicsRig.rightHand.physHand.armInternalMult = 1f / timeScale;
+        }
+        else if (_previousIsEnabled)
+        {
+            ResetPlayer();
+        }
+
+        _previousIsEnabled = IsEnabled;
+    }
+
+    private void ApplyGravity(float timeScale)
+    {
+        float gravMult = 1f / timeScale;
+        gravMult *= gravMult;
+
+        var totalGravity = Physics.gravity;
+        var grav = (totalGravity * gravMult) - totalGravity;
+
+        var feetRb = rigManager.physicsRig._feetRb;
+        var kneeRb = rigManager.physicsRig._kneeRb;
+
+        Vector3 totalForce = grav;
+        float totalMass = 0f;
+
+        if (feetRb.useGravity)
+        {
+            feetRb.AddForce(grav, ForceMode.Acceleration);
+            totalMass += feetRb.mass;
+        }
+
+        if (kneeRb.useGravity)
+        {
+            kneeRb.AddForce(grav, ForceMode.Acceleration);
+            totalMass += kneeRb.mass;
+        }
+
+        var col = rigManager.physicsRig.physG._groundedCollider;
+        if (col && col.attachedRigidbody)
+        {
+            col.attachedRigidbody.AddForceAtPosition(-totalForce * Mathf.Min(col.attachedRigidbody.mass, totalMass), feetRb.worldCenterOfMass, ForceMode.Force);
         }
     }
 
